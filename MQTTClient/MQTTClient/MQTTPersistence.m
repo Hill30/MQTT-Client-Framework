@@ -37,6 +37,30 @@
 @property (strong, nonatomic) NSManagedObjectContext *managedObjectContext;
 @end
 
+@interface NSManagedObjectContext ( Recursive )
+- (void)recursiveSave;
+@end
+
+@implementation NSManagedObjectContext ( Recursive )
+
+- (void)recursiveSave {
+    [self performBlockAndWait:^{
+        if (self.hasChanges) {
+            NSError *error = nil;
+            if (![self save: &error]) {
+                if (DEBUGPERSIST) NSLog(@"sync %@", error);
+            }
+            
+            if( nil != self.parentContext ){
+                [self.parentContext recursiveSave];
+            }
+        }
+    }];
+}
+
+@end
+
+
 static NSRecursiveLock *lock;
 static NSManagedObjectContext *parentManagedObjectContext;
 static NSManagedObjectModel *managedObjectModel;
@@ -119,20 +143,8 @@ static unsigned long long fileSystemFreeSize;
 }
 
 - (void)sync {
-    [self.managedObjectContext performBlockAndWait:^{
-        if (self.managedObjectContext.hasChanges) {
-            if (DEBUGPERSIST) NSLog(@"sync: i%lu u%lu d%lu",
-                                    (unsigned long)self.managedObjectContext.insertedObjects.count,
-                                    (unsigned long)self.managedObjectContext.updatedObjects.count,
-                                    (unsigned long)self.managedObjectContext.deletedObjects.count
-                                    );
-            NSError *error = nil;
-            if (![self.managedObjectContext save:&error]) {
-                if (DEBUGPERSIST) NSLog(@"sync %@", error);
-            }
-            [self sizes];
-        }
-    }];
+    [self.managedObjectContext recursiveSave];
+    [self sizes];
 }
 
 - (NSArray *)allFlowsforClientId:(NSString *)clientId
@@ -362,4 +374,9 @@ static unsigned long long fileSystemFreeSize;
     }
     if (DEBUGPERSIST) NSLog(@"sizes %llu/%llu", fileSize, fileSystemFreeSize);
 }
+
+
+
 @end
+
+

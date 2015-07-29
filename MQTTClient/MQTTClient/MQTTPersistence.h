@@ -6,6 +6,10 @@
 //  Copyright (c) 2015 Christoph Krey. All rights reserved.
 //
 
+// + RECOURSEVE
+// + CLEAN MODE
+
+
 #import <Foundation/Foundation.h>
 #import <CoreData/CoreData.h>
 #import "MQTTMessage.h"
